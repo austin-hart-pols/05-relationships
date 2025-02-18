@@ -1,9 +1,9 @@
-# Week 1: Intro to scientific inquiry
+# Week 5: Empirical relationships
 
 
 ### Agenda
 
-- Purpose of the course  
-- "Basement Tapes" discussion  
-- Syllabus  
-- Logic and structure of empirical research  
+- Motivation  
+- Assessing differences  
+- Characterizing trends  
+- Qualitative changes   

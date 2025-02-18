@@ -21,12 +21,28 @@ output:
   knitr::opts_chunk$set(
     message = F, 
     warning = F, 
-    eval = T, 
-    echo = F,
+    eval = F, 
+    echo = T,
     fig.align = 'center', 
     dev = 'svglite'
   )
   xaringanExtra::use_panelset()
+  
+  library(tidyverse); library(haven)
+  df <- read_spss('afrobarometer_r9_Benin.sav')
+  df <-
+    df %>%
+    mutate(
+      rural = as_factor(URBRUR),
+      dembest = case_when(
+        Q23 == 1 ~ "Who cares",
+        Q23 == 2 ~ "Not always",
+        Q23 == 3 ~ "Always Dem"
+      )
+    )
+  
+  df2 <-
+    read_dta('qog std cs jan24.dta')
 ```
 
 
@@ -34,184 +50,471 @@ output:
 class: partial-bg50, middle
 
 .pull-left[
-```{r, out.width="70%"}
+```{r, eval=TRUE, echo=FALSE, out.width="70%"}
 knitr::include_graphics("assets/classlogo.png")
 ```
 ]
 
 .pull-right[
-# 01 - Introductions
+# 05/6 - Empirical relationships
 
-- Purpose of the course
+- Qualitative changes: $\chi^2$-test
 
-- "Basement Tapes" discussion
+- Assessing differences: $t$ and $F$ tests
 
-- Syllabus, etc
+- Characterizing trends: OLS regression
 
-- Scientific inquiry
+- Conditional estimates: multiple regression
 
 ]
 
 
 ---
-# What's the purpose of this course?
+# Overview: empirical relationships
 
 .pull-left[
-### Introduce empirical research
 
-- **STATISTICS**
-  - Field concerned with collecting and analyzing data  
-  - Focused on variation and uncertainty
-
-- **THE RESEARCH PROCESS**  
-  - Roots in the scientific project  
-  - From question to findings  
-  - Evaluating research
+### Goals
+1. Characterize how the distribution of the outcome variable (Y) responds, on average, to changes in the exposure variable (X).  
+2. Differentiate systematic changes from those that could result from random chance.   
+3. Condition out selection bias
 
 
 ]
 
 .pull-right[
-### Support University mission
-
-- Research is the best of what we do
-
-- Asking and answering questions is still a radical act!
-
-- Scientific inquiry *can* support and strengthen free-thinking society
+### Keys for beginners
+- Correctly identify outcome (Y) versus exposure (X) variable.  
+- Correctly identify measurement scale of both vars.  
+- Focus on explanation; don't get caught in R code.
 ]
 
 
 ---
-# Basement Tapes
-### In-class discussion
+# Tabular analysis
 
-1. What theory motivates Frantz’s study? Identify the key cause and the outcome he seeks to explain.  
-2. What did Frantz know from prior studies, and why were those findings seen as incomplete or insufficient?  
-3. How does Frantz test his core hypothesis? Be specific about the design of his elaborate study.  
-4. What do his results show? What are we to make of the findings? 
+- **When to use it?**
+  - Categorical outcome (Y)  
+  - Categorical exposure (X)  
 
-For reference: [podcast](https://www.pushkin.fm/podcasts/revisionist-history/the-basement-tapes#play) (S2E10) and [study results](https://www.ahajournals.org/doi/pdf/10.1161/01.atv.9.1.129)
+- **How?**
+  - Generate contingency table (cross-tabs)  
+  - Assess independence of factors using $\chi^2$ test
 
----
-# Get to know the course
-
-- Let's visit the [living course syllabus](https://docs.google.com/document/d/1V5JLruDU9m9_eSnQqXQZ5-yDZCGlc9GZOQsVNcf3C7Q/edit?usp=sharing)
-
-- Expectations for class  
-  - We begin on time  
-  - Take notes and ask questions  
-  - Leave Slacks, chats, etc. behind
-
-- Outside of class  
-  - Do the reading  
-  - Give yourself time to do assignments  
-  - Be in touch!  
+- **Key points**
+  - Report relative frequencies.  
+  - Construct table correctly.  
 
 ---
-class: inverse, middle
+# The motivation
 
-# Foundations of scientific inquiry
 
-1. Where does science come from?  
-2. What defines scientific research?  
+### Independent or not?
+- Construct a contingency (cross-tabs) table. 
+- What is "the distribution of Y" here?
+- Where is a "change in X" in this table? 
+- Define statistical independence
 
 
 ---
-# Origins of the modern scientific project
+# Statistical test
+
+
+### Chi-square test of independence
+
+- Null: X and Y are independent
+
+$$
+\chi^2_{df} = \sum \frac{(O-E)^2}{E}
+$$
+  - $O=$ observed frequency in each cell
+    
+  - $E=\frac{row.total}{grand.total}*col.total$  
+    Expected frequency in each cell assuming independence.
+    
+  - $df=(x.cats-1)*(y.cats-1)$  
+    Degrees of freedom
+
+---
+# In R
+
+### Tabular analysis
+
+.pull-left[
+```{r, eval = F, echo = T}
+# Raw cross-tabulation
+  xtab =
+    film %>% 
+    count(Outcome, Exposure) %>% 
+    na.omit() %>% #
+    pivot_wider(
+      names_from = Exposure,
+      values_from = n, 
+      values_fill = 0
+    )
+
+# Chi-sq test stat
+  chisq.test(xtab[-1])
+```
+]
+
+.pull-right[
+
+```{r, eval = F, echo = T}
+# Relative freq table  
+  xtab %>%
+    mutate(Total = rowSums(.[-1])) %>%
+    mutate_at(
+      -1, 
+      ~round(100 * ./sum(.), digits=1)
+    ) %>%
+    knitr::kable()
+```
+]
+
+---
+# Presentation
 
 .pull-left[
 
-```{r, out.width="70%"}
-knitr::include_graphics("assets/bacon.jpg")
+&nbsp;
+
+```{r, eval = T, echo = F}
+# Raw cross-tabulation
+  xtab =
+    df %>% 
+    count(dembest, rural) %>% 
+    na.omit() %>% #
+    pivot_wider(
+      names_from = rural,
+      values_from = n, 
+      values_fill = 0
+    )
+  
+# Relative freq table  
+  xtab %>%
+    mutate(Total = rowSums(.[-1])) %>%
+    mutate_at(
+      -1, 
+      ~round(100 * ./sum(.), digits=1)
+    ) %>%
+    knitr::kable(caption = 'Strong support for democracy among urban and rural Beninese')
+```
+]
+
+.pull-right[
+In the full sample, 80% of Beninese say democracy is always best and the others are split roughly evenly between the other two. The distribution of preferences is roughly equal across urban and rural respondents, though rural Beninese express slightly less support for democracy. 
+
+There is no evidence of a statistically significant relationship $(\chi^2_2=0.15,~p = 0.93)$. 
+]
+
+---
+# Assessing differences
+
+.pull-left[
+
+- **When to use it?**
+  - Continuous outcome measure (Y)  
+  - Qualitative exposure (X)  
+
+- **How?**
+  - Calculate and compare summary stats (i.e., group means)  
+  - Significance test: $t$ or $F$
+  
+- **Key points**
+  - Report and compare the means!
+  
+]
+
+.pull-right[
+
+&nbsp;
+
+&nbsp; 
+
+&nbsp; 
+
+
+> *Example:*  
+> Think about Ivan Franz's Minnesota Trials. Identify X and Y vars in his study and the measurement scales of each.
+
+]
+
+---
+# The motivation
+
+.pull-left[
+### Independent or not?
+
+- What is the distribution of Y here?
+
+- Where is the change in X?
+
+- Define independence in this case.
+]
+
+.pull-right[
+### Basic stats
+
+```{r}
+# group summary
+  df %>%
+    group_by(xvar) %>%
+    summarize(
+      freq = n(),
+      min = min(yvar, na.rm = T),
+      avg = mean(yvar, na.rm = T),
+      max = max(yvar, na.rm = T),
+      sd = sd(yvar, na.rm = T)
+    )
+
+# boxplots
+  boxplot(yvar ~ xvar, df)
+```
+]
+
+---
+# Statistical tests
+
+.pull-left[
+### ANOVA $(F)$
+
+- $H_0: ~ \mu_1 = \mu_2 = \mu_k$ 
+
+$$
+\begin{align*}
+F &= \frac{SS_{between}}{SS_{within}} \\
+  &= \frac{n \Sigma(\bar{X}_k - \bar{X})^2/(k-1)}{\Sigma(X_i - \bar{X}_k)^2/(N-k)   }
+\end{align*}
+$$
+
+- Reject when $p < 0.05$ 
+
+```{r}
+# ANOVA
+  ftest <- anova(yvar ~ xvar, data)
+  summary(ftest)
+```
+
+]
+.pull-right[
+### Diff of means $(t)$
+
+- $H_0: ~ \mu_1 = \mu_2$ 
+
+$$
+t = \frac{\bar{X}_1 - \bar{X}_2}{\sqrt{s^2_1/n_1 + s^2_2/n_2}}
+$$
+
+- Reject when $p \leq 0.05$ 
+
+```{r}
+# Ind samples t-test
+  t.test(yvar ~ xvar, data)
 ```
 
 ]
 
+---
+# Presentation
+
+.pull-left[
+
+&nbsp;
+
+```{r, eval = T, echo = F}
+  df2 %>%
+    mutate(
+      PR = case_when(
+        br_pvote == 1 ~ '.PR',
+        br_pvote == 0 ~ 'Not'
+      ),
+      wip = wdi_wip,
+      .keep = 'none'
+    ) %>%
+    na.omit() %>%
+    group_by(PR) %>%
+    summarize(
+      min = min(wip, na.rm = T),
+      avg = mean(wip, na.rm = T),
+      med = median(wip, na.rm = T),
+      max = max(wip, na.rm = T),
+      sd = sd(wip, na.rm = T)
+    )  %>%
+    pivot_longer(-1) %>% 
+    pivot_wider(names_from=PR, values_from=value) %>%
+    mutate(
+      ` ` = name,
+      `PR voting` = `.PR`,
+      Other = Not,
+      Difference = `.PR` - Not,
+      .keep = 'none'
+    ) %>%
+    knitr::kable(digits = 1L, caption = 'Women hold more seats in PR systems')
+```
+]
+
 .pull-right[
-
-### Bacon's new empiricism
-
-- Knowledge through observation and experimentation
-
-- Inductive reasoning
-  - Move from specific to general 
-  - Probabilistic claims    
-  - Conclusions open to new evidence
-  
-- Progress by rejecting bad ideas 
-
+The figure plots the representation of women in the lower house of parliament (% seats held) by the use of proportional voting (PR). Among countries that use PR systems, women hold 28 percent of seats, on average. In countries without PR voting, women hold only 20 percent of seats, a difference of 8 points. It is unlikely that we observe this difference by chance alone $(t=-4.9,~p < 0.001)$. 
 ]
 
 ---
-# Logic and structure of scientific inquiry
+# Linear trends
 
-.panelset[
-.panel[.panel-name[Process]
+- **When to use it?**
+  - Continuous outcome (Y)  
+  - Continuous exposure var (X)  
 
-- Question and expectations
+- **How?**
+  - Estimate line of best fit: $E(Y_i|X_i) = \alpha + \beta(X_i)$  
+  - Focus on sign, magnitude and significance of $\beta$
 
-- Study 
-  - Research design (plan)  
-  - Data collection  
-  - Analysis  
+- **Key points**
+  - Using straight line to describe a trend.  
+
+
+---
+# The motivation
+
+### Linear independence
+
+- What is the "distribution of Y" here?  
+- Define the change in X.  
+- What constitutes independence?
+
+
+---
+# Refresher: lines
+
+> Model the expected (mean) value of the outcome variable as a linear function of the exposure variable.
+
+$$ E(Y_i|X_i) = \alpha + \beta(X_i) $$
+
+### Parameters of a line
+
+- Intercept, $\alpha$   
+  $E(Y_i|X_i = 0) =\alpha$
+
+- Slope, $\beta$  
+  $E(\Delta Y_i| \Delta X_i) = \beta$
   
-- Report findings  
 
-- New questions
 
-]
 
-.panel[.panel-name[Question]
+---
+# Lines, data, and errors. Oh my!
 
-.pull-left[ 
-- Study "effects of causes"
-  - Exposure variable: cause, $X$
-  - Outcome variable: effect, $Y$
+&nbsp;
 
-- Theory: what we *think* we know about $X \rightarrow Y$
+$$Y_i = \alpha + \beta (X_i) + e_i $$
 
-- Hypotheses: observable implications of theory
+.pull-left[
+.center[**Estimate**]
+
+$$ E(Y_i|X_i) = \alpha + \beta(X_i) $$
 ]
 
 .pull-right[
+.center[**Residual error**]
 
-> **Theories** are general stories about the way things work. 
-
-> **Hypotheses** are specific predictions, derived from theory, about what we should see in the data.
-
-]
+$$ e_i = Y_i - (\alpha + \beta(X_i)) $$
 ]
 
-.panel[.panel-name[Study]
-
-- Research design
-  - *Experiment (RCT)*: the researcher exposes units to different values of treatment at random.    
-  - *Observational*: the researcher observes and records values of the variables as they are.  
-
-- Data collection  
-
-- Statistical analysis  
-  - Characterize the relationship  
-  - Is it systematic? 
-
+&nbsp; 
+.center[
+### Ordinary Least Squares (OLS)
+Find values of $\alpha$ and $\beta$ that minimize $\sum{e_i^2}$
 ]
 
-.panel[.panel-name[Report]
+---
+# Estimating regressions
 
-- Answer your question given the analysis
+.pull-left[
+### Setup  
+- PRF: $Y_i = \alpha + \beta(X_i) + e_i$
+- SRF: $Y_i = a + b(X_i) + u_i$
 
-- Consider the validity of your conclusion  
-  - Internal validity: have you ruled out alternative explanations and sources of bias?  
-  - External validity: do the results generalize to other cases, places, treatments, and outcomes?
-
-- What do your findings mean for extant theory?
-
+### Testing
+- $H_0:~\beta=0$
+- $t = b / \sigma_b$  
+- Reject if $p \leq 0.05$
 ]
+
+.pull-right[
+### OLS in R
+
+```{r}
+# Estimate
+  e1 <- lm(yvar ~ xvar, data)
+
+# Visualize
+  plot(yvar ~ xvar, data)
+  abline(e1)
+  
+# Table
+  library(stargazer)
+  stargazer(e1, type = 'text', keep.stat = 'n')
+```
 ]
 
+---
+# Multiple regression
+
+### Sources of error
+
+- Random noise  
+
+- Bias due to confounding
 
 
+---
+# How to mitigate bias
+
+### Conditioning on confounders  
+
+.pull-left[
+#### What to include?
+
+1. Identify confounding variables
+  - It's a known or likely cause of Y.  
+  - AND it's a cause or correlate of X.  
+2. Add them as controls in your model.  
+
+#### What to avoid?
+- Alternate measures of X. 
+- Overfitting. 
+]
+
+.pull-right[
+#### But how?
+```{r}
+# Estimate
+  e1 <- lm(yvar ~ xvar, data) # unconditional
+  e2 <- lm(yvar ~ xvar + control1 + control2, data)
+  
+# Table
+  library(stargazer)
+  stargazer(e1, e2, type = 'text', keep.stat = 'n')
+```
+]
+ 
+---
+# Presentation
+
+.pull-left[
+```{r, echo=F, eval=T, results = 'asis'}
+  mods = list(
+    e1 = lm(epi_epi ~ wdi_wip, df2),
+    e2 = lm(epi_epi ~ wdi_wip + wdi_gdpcapcur + vdem_libdem, df2)
+  )
+  
+  stargazer::stargazer(mods, dep.var.labels = c('EPI index'), covariate.labels = c('Women in Parl', 'GDP per capita', 'Lvl of democracy'), type = 'html', style = 'apsr', keep.stat = 'n') 
+```
+]
+
+.pull-right[
+Models 1 and 2 show the unconditional and conditional relationship between women in parliament and EPI scores. We find that a 1-percentage point increase in women's rep is associated with a 0.355 increase in EPI score on average. The estimate attenuates after controlling for GDP and democracy, where EPI increases by 0.157 for the same change in women's rep. Both estimates are significant at 5%.  
+]
 
 ---
 class: partial-bg50, middle, center
