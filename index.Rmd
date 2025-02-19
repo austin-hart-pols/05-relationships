@@ -29,6 +29,7 @@ output:
   xaringanExtra::use_panelset()
   
   library(tidyverse); library(haven)
+  library(modelsummary); library(gt)
   df <- read_spss('afrobarometer_r9_Benin.sav')
   df <-
     df %>%
@@ -458,6 +459,27 @@ Find values of $\alpha$ and $\beta$ that minimize $\sum{e_i^2}$
 ]
 
 ---
+# Presentation
+
+.pull-left[
+```{r, eval = T, echo = F, out.width="65%"}
+e1 <- lm(epi_epi ~ wdi_wip, df2)
+plot(epi_epi ~ wdi_wip, df2, xlab = 'Women in Legislature', ylab = 'Envir. Protection Score')
+abline(e1)
+```
+]
+
+.pull-right[
+```{r, eval = T, echo = F}
+e1 <- lm(epi_epi ~ wdi_wip, df2)
+
+modelsummary(e1, gof_map = c('nobs'), stars = TRUE, output = 'gt')
+```
+
+I find a positive correlation between women's rep and environmental protection. On average, EPI scores rise by 0.335 for every pp rise in women's rep. It is unlikely that we observe this due to chance alone $(p < 0.001)$.
+]
+
+---
 # Multiple regression
 
 ### Sources of error
@@ -502,13 +524,13 @@ Find values of $\alpha$ and $\beta$ that minimize $\sum{e_i^2}$
 # Presentation
 
 .pull-left[
-```{r, echo=F, eval=T, results = 'asis'}
+```{r, echo=F, eval=T}
   mods = list(
-    e1 = lm(epi_epi ~ wdi_wip, df2),
-    e2 = lm(epi_epi ~ wdi_wip + wdi_gdpcapcur + vdem_libdem, df2)
+    "(1)" = lm(epi_epi ~ wdi_wip, df2),
+    "(2)" = lm(epi_epi ~ wdi_wip + wdi_gdpcapcur + vdem_libdem, df2)
   )
-  
-  stargazer::stargazer(mods, dep.var.labels = c('EPI index'), covariate.labels = c('Women in Parl', 'GDP per capita', 'Lvl of democracy'), type = 'html', style = 'apsr', keep.stat = 'n') 
+  modelsummary(mods, gof_map = c('nobs'), stars = TRUE, output = 'gt')
+   
 ```
 ]
 
